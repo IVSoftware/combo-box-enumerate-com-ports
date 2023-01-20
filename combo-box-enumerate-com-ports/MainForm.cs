@@ -28,13 +28,12 @@ namespace combo_box_modify_selections
             comboBoxCom.DataSource = ComPorts;
             ComPorts.ListChanged += onComPortChanged;
             enumerateComPorts();
-            _initialized= true;
         }
-        bool _initialized = false;
+        bool _isDeviceChange = false;
 
         private void onComPortChanged(object? sender, ListChangedEventArgs e)
         {
-            if(_initialized) BeginInvoke(() => richTextBox.Clear());
+            if(_isDeviceChange) BeginInvoke(() => richTextBox.Clear());
             ComPort comPort;
             switch (e.ListChangedType)
             {
@@ -75,8 +74,18 @@ namespace combo_box_modify_selections
             }
             BeginInvoke(() =>
             {
-                richTextBox.SelectionColor = Color.Red;
-                richTextBox.AppendText($"{e.ListChangedType}{Environment.NewLine}");
+                if (_isDeviceChange) 
+                {
+                    richTextBox.SelectionColor =
+                         e.ListChangedType.Equals(ListChangedType.ItemAdded) ?
+                         Color.Green : Color.Red;
+                    richTextBox.AppendText($"{e.ListChangedType}{Environment.NewLine}");
+                }
+                else
+                {
+                    richTextBox.SelectionColor = Color.Blue;
+                    richTextBox.AppendText($"Detected{Environment.NewLine}");
+                }
                 richTextBox.SelectionColor = Color.FromArgb(0x20, 0x20, 0x20);
                 richTextBox.AppendText(comPort?.GetFullDescription());
             });
@@ -87,6 +96,7 @@ namespace combo_box_modify_selections
 
         private void onDeviceChange()
         {
+            _isDeviceChange = true;
             int captureCount = ++_wdtCount;
             Task
                 .Delay(TimeSpan.FromMilliseconds(500))
@@ -114,8 +124,8 @@ namespace combo_box_modify_selections
             {
                 if (!ports.Contains(port.PortName))
                 {
-                    ComPorts.Remove(port);
                     _removedItem = port;
+                    ComPorts.Remove(port);
                 }
             }
             BeginInvoke(()=> ActiveControl = null); // Remove focus rectangle
